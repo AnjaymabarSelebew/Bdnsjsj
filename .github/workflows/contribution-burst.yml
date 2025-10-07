@@ -1,0 +1,60 @@
+name: Contribution Burst
+
+on:
+  workflow_dispatch:
+
+jobs:
+  burst:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Git
+        run: |
+          git config --global user.name "AnjaymabarSelebew"
+          git config --global user.email "12345678+AnjaymabarSelebew@users.noreply.github.com"
+
+      - name: Generate Commits (1500 total)
+        env:
+          YEAR: 2025
+          TOTAL: 1500
+        run: |
+          mkdir -p generated
+          for i in $(seq 1 $TOTAL)
+          do
+            echo "Commit ke-$i pada tahun $YEAR" > generated/file_$i.txt
+            git add generated/file_$i.txt
+            GIT_COMMITTER_DATE="$YEAR-01-01T12:00:00" \
+            GIT_AUTHOR_DATE="$YEAR-01-01T12:00:00" \
+            git commit -m "Generated commit ke-$i ($YEAR)"
+          done
+          git push https://${{ secrets.PAT_TOKEN }}@github.com/${{ github.repository }} HEAD:main
+
+      - name: Create Pull Requests (100 total)
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          for n in $(seq 1 100)
+          do
+            BRANCH="pr-batch-$n"
+            git checkout -b $BRANCH
+            echo "Batch PR $n" > pr_$n.txt
+            git add pr_$n.txt
+            git commit -m "Batch PR $n"
+            git push https://${{ secrets.PAT_TOKEN }}@github.com/${{ github.repository }} HEAD:$BRANCH
+            gh pr create --title "Pull Request Batch $n" --body "Generated automatically" --base main --head $BRANCH || true
+          done
+
+      - name: Create Issues (100 total)
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          for n in $(seq 1 100)
+          do
+            gh issue create --title "Generated Issue #$n" --body "Auto-created issue number $n" || true
+          done
